@@ -118,3 +118,339 @@ O objetivo do MVP é **substituir o Agendor no dia a dia**, não entregar tudo. 
 | **Fase 1 — MVP (~2 meses)** | Pipeline, funis SDR+Closer, clonagem, geração de proposta, relatório MRR × pontual       | Substituir o Agendor  |
 | **Fase 2 — Inteligência**   | Contabilidade de comissões automatizadas, relatório de produtos p/ marketing, dashboards | Precisão e insights   |
 | **Fase 3 — Comercial**      | White-label, billing/assinaturas, onboarding self-serve, planos                          | Go-to-market          |
+
+## 9. Entidades
+```mermaid
+classDiagram
+    %% --- CLASSES CORE (AZUL) ---
+    class Negociacao {
+        +UUID id
+        +String titulo*
+        +String status ABERTA, GANHA, PERDIDA
+        +UUID idFunil*
+        +UUID idEtapa*
+        +UUID idResponsavel* <<O DONO PRINCIPAL AINDA FICA AQUI>>
+        +UUID idCliente*
+        +JSONB dadosPersonalizados
+        +DateTime dataFechamentoEsperada
+        +DateTime criadoEm
+        +String criadoPor
+        +ganhar()
+        +perder(String idMotivo)
+        +alterarTitulo(String titulo)
+        +alterarResponsavel(String idResponsavel)
+        +alterarFunil(String idFunil)
+        +alterarEtapa(String idEtapa)
+    }
+
+    class Contato {
+        +UUID id
+        +String nome*
+        +String whatsapp*
+        +String telefone unico
+        +String email unico
+        +String cpf unico
+        +String cargo
+        +UUID idEmpresa
+        +JSONB dadosPersonalizados
+        +Boolean ativo
+        +ativar()
+        +desativar()
+        +atualizar(Contato dados)
+    }
+
+    class Empresa {
+        +UUID id
+        +String razaoSocial*
+        +String nomeFantasia
+        +String cnpj* unico
+        +String telefone
+        +JSONB dadosPersonalizados
+        +Boolean ativo
+        +ativar()
+        +desativar()
+        +atualizar(Empresa dados)
+    }
+
+    class Produto {
+        +UUID id
+        +String codigo* unico
+        +String nome*
+        +String descricao
+        +Decimal precoBase
+        +Decimal custoBase
+        +Cobranca cobranca ASSINATURA, AVULSO
+        +Boolean ativo
+        +ativar()
+        +desativar()
+        +atualizar(Produto dados)
+    }
+
+    %% --- CLASSES FINANCEIRAS (VERDE) ---
+    class ItemNegociacao {
+        +UUID id
+        +UUID idNegociacao*
+        +UUID idProduto*
+        +Int quantidade*
+        +Decimal precoUnitario* 
+        +Decimal custoUnitario* 
+        +Decimal valorDesconto
+        +String modeloCobranca UNICO, RECORRENTE
+        +atualizar(ProdutoOmitindoIds dados)
+    }
+
+    class ComissaoItem {
+        +UUID id
+        +UUID idItemNegociacao*
+        +UUID idUsuario*
+        +String papel VENDEDOR, SDR
+        +Decimal percentual*
+        +Decimal valorR$*
+        +DateTime criadoEm
+        +atualizar(ComissaoItemOmitindoIdNegociacao dados)
+    }
+
+    class PacoteComissao {
+        +UUID id
+        +String nome*
+        +String descricao
+        +Boolean ativo
+    }
+
+    class RegraComissaoProduto {
+        +UUID idPacote*
+        +UUID idProduto*
+        +Decimal percentual*
+    }
+
+    class ParticipanteNegociacao {
+        +UUID idNegociacao*
+        +UUID idUsuario*
+        +String papel* VENDEDOR, SDR, GERENTE
+    }
+
+    %% --- CLASSES IAM / ACESSO (ROXO) ---
+    class Usuario {
+        +UUID id
+        +String nome*
+        +String email* unico
+        +String telefone
+        +UUID idPacoteComissao*
+        +UUID idPerfil*
+        +Boolean ativo
+        +ativar()
+        +desativar()
+        +alterarPerfil(String idPerfil)
+        +atualizarSenha(String novaSenha)
+        +atualizarNome(String novoNome)
+        +atualizarTelefone(String novoTelefone)
+        +vincularPacoteComissao(String idPacote)
+    }
+
+    class Perfil {
+        +UUID id
+        +String nome*
+        +Boolean ativo
+        +atualizar(String novoNome)
+    }
+
+    class Permissao {
+        +UUID id
+        +String modulo*
+        +String acao*
+    }
+
+    class PermissaoPerfil {
+        +UUID idPerfil
+        +UUID idPermissao
+    }
+
+    %% --- CLASSES OPERACIONAIS (LARANJA) ---
+    class Tarefa { 
+        +UUID id
+        +String tipo* 
+        +String status* 
+        +String prioridade*
+        +DateTime dataVencimento*
+        +DateTime concluidoEm
+        +UUID idNegociacao
+        +UUID idContato
+        +UUID idResponsavel*
+        +UUID idCriador*
+        +marcarComoConcluido()
+        +alterarResponsavel(String idResponsavel)
+        +alterarPrioridade(String idPrioridade)
+        +alterarTipo(String idTipo)
+        +reagendar(DateTime novaDataVencimento)
+    }
+
+    class Nota {
+        +UUID id
+        +Text content*
+        +UUID idNegociacao*
+        +UUID idCriador*
+        +DateTime criadoEm
+        +atualizar(Text content)
+    }
+
+    class HistoricoAtividade {
+        +UUID id
+        +UUID idNegociacao*
+        +UUID idUsuario*
+        +String tipoAcao* MUDOU_ETAPA, NOTA_CRIADA
+        +JSONB detalhes*
+        +DateTime criadoEm
+    }
+
+    class Proposta {
+        +UUID id
+        +String descricao*
+        +UUID idNegociacao*
+        +UUID idModelo* 
+        +String status ENVIADA, ACEITA, CANCELADA
+        +DateTime dataEnvio
+        +DateTime dataValidade
+        +Boolean ativo
+        +aceitar()
+        +cancelar()
+        +reagendar()
+    }
+
+    class PropostaModelo {
+        +UUID id
+        +String name*
+        +JSONB camposVariaveis
+        +Text conteudoHTML*
+        +Boolean ativo
+    }
+
+    %% --- CLASSES ESTRUTURAIS (CINZA) ---
+    class Funil {
+        +UUID id
+        +String nome*
+        +String descricao
+        +Boolean ativo
+        +atualizar(Funil dados)
+    }
+
+    class Etapa {
+        +UUID id
+        +String nome*
+        +String descricao
+        +Int ordem*
+        +UUID idFunil*
+        +Boolean ativo
+        +atualizar(EtapaNomeDescricaoOrdem dados)
+        +deletar()
+    }
+
+    class CampoPersonalizado {
+        +UUID id
+        +String nome*
+        +String descricao
+        +String alvo Contato, EMPRESA, NEGOCIACAO
+        +String tipo TEXTO, NUMERO, LISTA
+        +Boolean ativo
+        +atualizar(CampoPersonalizado dados) 
+    }
+
+    class Etiqueta {
+        +UUID id
+        +String name*
+        +String color*
+        +Boolean ativo
+        +atualizar(Etiqueta dados) 
+    }
+
+    class Origem {
+        +UUID id
+        +String name*
+        +Boolean ativo
+        +atualizar(String nome)
+    }
+
+    class MotivoDePerda {
+        +UUID id
+        +String name*
+        +Boolean ativo
+        +atualizar(String nome)
+    }
+
+    %% --- RELACIONAMENTOS REORGANIZADOS PARA LAYOUT ---
+    
+    %% Core & Estrutural
+    Funil "1" *-- "*" Etapa : possui
+    Etapa "1" <-- "*" Negociacao : estagio atual
+    Origem "1" <-- "*" Negociacao : veio de
+    MotivoDePerda "1" <-- "*" Negociacao : perdeu por
+    Empresa "1" <-- "*" Negociacao : cliente
+    Empresa "1" <-- "*" Contato : trabalha em
+
+    %% Negociacao e Operacional
+    Negociacao "1" *-- "*" Tarefa : tem
+    Negociacao "1" *-- "*" Nota : tem
+    Negociacao "1" *-- "*" HistoricoAtividade : sofreu
+    Negociacao "1" *-- "*" Proposta : possui
+    PropostaModelo "1" <-- "*" Proposta : baseada em
+
+    %% Dependência de JSONB e N:N
+    Negociacao ..> CampoPersonalizado : utiliza schema
+    Contato ..> CampoPersonalizado : utiliza schema
+    Empresa ..> CampoPersonalizado : utiliza schema
+    Negociacao "*" -- "*" Etiqueta : possui
+    Contato "*" -- "*" Etiqueta : possui
+    Empresa "*" -- "*" Etiqueta : possui
+    
+    %% Financeiro e Comissões
+    Negociacao "1" *-- "*" ItemNegociacao : contem itens
+    Negociacao "1" *-- "*" ParticipanteNegociacao : possui equipe
+    Produto "1" <-- "*" ItemNegociacao : referente a
+    ItemNegociacao "1" *-- "*" ComissaoItem : gera fatia
+    PacoteComissao "1" *-- "*" RegraComissaoProduto : possui regras
+    Produto "1" <-- "*" RegraComissaoProduto : alvo da regra
+    
+    %% IAM e Vínculos
+    Usuario "1" <-- "*" Negociacao : dono
+    Usuario "1" <-- "*" ParticipanteNegociacao : membro
+    Usuario "1" <-- "*" ComissaoItem : favorecido
+    PacoteComissao "1" <-- "*" Usuario : utiliza
+    Perfil "1" <-- "*" Usuario : possui
+    Perfil "1" *-- "*" PermissaoPerfil : contem
+    Permissao "1" *-- "*" PermissaoPerfil : pertence
+
+    %% --- CORES APLICADAS (USANDO STYLE) ---
+    
+    %% Azul
+    style Negociacao fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style Empresa fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style Contato fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+    style Produto fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
+
+    %% Verde
+    style ItemNegociacao fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ComissaoItem fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style PacoteComissao fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style RegraComissaoProduto fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style ParticipanteNegociacao fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000
+
+    %% Roxo
+    style Usuario fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style Perfil fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style Permissao fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    style PermissaoPerfil fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+
+    %% Laranja
+    style Tarefa fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    style Nota fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    style HistoricoAtividade fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    style Proposta fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+    style PropostaModelo fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,color:#000
+
+    %% Cinza
+    style Funil fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    style Etapa fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    style CampoPersonalizado fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    style Etiqueta fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    style Origem fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+    style MotivoDePerda fill:#f5f5f5,stroke:#616161,stroke-width:2px,color:#000
+```
